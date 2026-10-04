@@ -1,0 +1,51 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bms_user
+      POSTGRES_PASSWORD: bms_password
+      POSTGRES_DB: booth_management
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bms_user -d booth_management"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://bms_user:bms_password@db:5432/booth_management
+      JWT_SECRET: ${JWT_SECRET:-change_this_to_a_long_random_string}
+      JWT_EXPIRES_IN: 12h
+      CLIENT_ORIGIN: http://localhost:5173
+      PORT: 4000
+      OTP_LENGTH: 6
+      OTP_EXPIRY_MINUTES: 5
+      OTP_MAX_ATTEMPTS: 5
+      OTP_RESEND_COOLDOWN_SECONDS: 30
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
+      TWILIO_FROM_NUMBER: ${TWILIO_FROM_NUMBER:-}
+    ports:
+      - "4000:4000"
+    command: sh -c "node src/migrate.js && node src/seed.js && node server.js"
+
+  frontend:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
+
+volumes:
+  pgdata:
