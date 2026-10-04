@@ -185,3 +185,4 @@ come up clean — happy to debug from there.
 - OTP requests are rate-limited (cooldown + max attempts) to blunt brute-forcing.
 - Change `JWT_SECRET` to a long random value before any real deployment.
 - Put this behind HTTPS in production — JWTs and OTPs should never travel over plain HTTP.
+# BMS
